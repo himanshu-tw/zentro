@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zentro Recorder</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container drag-area">
+        <div class="header">
+            <span class="title">● Zentro</span>
+            <button id="closeBtn" class="no-drag icon-btn" title="Close">✕</button>
+        </div>
+        <div class="content no-drag">
+            <div id="status" class="status-msg">Ready to record</div>
+            <button id="recordBtn" class="primary-btn">Start Recording</button>
+        </div>
+    </div>
+    <script src="renderer.js"></script>
+</body>
+</html>

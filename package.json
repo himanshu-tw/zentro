@@ -1,0 +1,14 @@
+{
+  "name": "zentro-recorder",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "start": "npm start --workspace=apps/desktop",
+    "setup:python": "cd packages/processor && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt",
+    "install:all": "npm install && npm run setup:python"
+  }
+}
