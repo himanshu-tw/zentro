@@ -40,7 +40,7 @@ def process_video(video_in, json_in, video_out):
     out = cv2.VideoWriter(video_out, fourcc, fps, (width, height))
 
     # State variables
-    is_zoomed = False
+    last_intent_activity_f = -9999
     prev_target_scale = 1.0
     zoom_start_scale = 1.0
     zoom_start_frame = -9999
@@ -85,21 +85,44 @@ def process_video(video_in, json_in, video_out):
         if not ret:
             break
 
+        # Intelligent Zoom Intent Logic based on speed and click priority
+        # 1. Click Detection (Highest Priority)
         latest_click = get_latest_event_before(clicks, frame_idx)
-        latest_move = get_latest_event_before(moves, frame_idx)
-        
         last_click_f = latest_click['frame'] if latest_click else -9999
-        last_move_f = latest_move['frame'] if latest_move else -9999
-        last_activity_f = max(last_click_f, last_move_f)
+        is_click_active = (frame_idx - last_click_f <= idle_frames)
 
-        # Logic for zoom presence based on idle detection
-        if last_activity_f != -9999 and (frame_idx - last_activity_f <= idle_frames):
-            is_zoomed = True
-        else:
-            is_zoomed = False
-
-        target_scale = 2.0 if is_zoomed else 1.0
+        # 2. Speed-based Movement Detection (Medium Priority vs Ignore)
+        window_frames = max(1, int(0.1 * fps)) # 100ms window for speed calculation
+        p1_x, p1_y = get_interpolated_pos(moves, frame_idx - window_frames)
+        p2_x, p2_y = get_interpolated_pos(moves, frame_idx)
         
+        is_moving = False
+        cursor_speed = 0.0 # pixels per second
+        
+        if p1_x is not None and p2_x is not None:
+            dist = np.hypot(p2_x - p1_x, p2_y - p1_y)
+            # Filter noise: only track if distance > 5px threshold
+            if dist >= 5.0:
+                is_moving = True
+                cursor_speed = dist / (window_frames / fps)
+
+        # 3. Apply Decision Rules
+        speed_threshold = width * 0.4 # approx 40% screen width per second means fast navigation
+        
+        if is_click_active:
+            target_scale = 1.7 # Emphasize clicks
+            last_intent_activity_f = frame_idx
+        elif is_moving:
+            if cursor_speed < speed_threshold:
+                target_scale = 1.4 # Slow movement = focusing intent
+            else:
+                target_scale = 1.0 # Fast movement = navigation intent (ignore)
+            last_intent_activity_f = frame_idx
+        else:
+            # Idle rule
+            if frame_idx - last_intent_activity_f > idle_frames:
+                target_scale = 1.0 # Zoom out after idle period
+
         # Smooth zoom transition (ease-in / ease-out)
         if target_scale != prev_target_scale:
             zoom_start_scale = curr_scale
